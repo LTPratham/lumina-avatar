@@ -55,7 +55,8 @@ export class WhisperSTT {
       }
 
       this.mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+        const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+        const audioBlob = new Blob(this.audioChunks, { type: mimeType });
         this.isRecording = false;
         resolve(audioBlob);
       };
@@ -72,8 +73,11 @@ export class WhisperSTT {
    * Transcribes a recorded audio blob by sending it to the backend server.
    */
   public async transcribe(audioBlob: Blob, serverUrl: string = 'http://localhost:3001'): Promise<string> {
+    const ext = audioBlob.type.split('/')[1]?.split(';')[0] || 'webm';
+    const filename = `recording.${ext}`;
+
     const formData = new FormData();
-    formData.append('audio', audioBlob, 'recording.wav');
+    formData.append('audio', audioBlob, filename);
 
     try {
       const response = await fetch(`${serverUrl}/api/stt`, {
