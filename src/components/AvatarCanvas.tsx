@@ -5,12 +5,16 @@ interface AvatarCanvasProps {
   src?: string; // URL to the .riv file or image
   stateMachineName?: string;
   className?: string;
+  isMoving?: boolean;
+  moveDirection?: 'left' | 'right';
 }
 
 export const AvatarCanvas = ({
   src = '/avatar.png', // Default to our beautiful new custom cartoon avatar sheet!
   stateMachineName = 'State Machine 1',
-  className = ''
+  className = '',
+  isMoving = false,
+  moveDirection = 'left'
 }: AvatarCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const riveRef = useRef<Rive | null>(null);
@@ -106,7 +110,7 @@ export const AvatarCanvas = ({
 
   // Image Avatar Animation loop when speaking
   useEffect(() => {
-    if (!isImageAvatar || !isSpeaking) {
+    if (!isImageAvatar || !isSpeaking || isMoving) {
       setBgPosition('0% 0%'); // Default front resting view
       return;
     }
@@ -120,15 +124,19 @@ export const AvatarCanvas = ({
     }, 220); // Sync animation speed
 
     return () => clearInterval(interval);
-  }, [isSpeaking, isImageAvatar]);
+  }, [isSpeaking, isImageAvatar, isMoving]);
 
   return (
     <div 
       className={`lumina-avatar-container ${className}`} 
       style={{
         ...containerStyle,
-        // Add subtle breathing visual effect
-        animation: isSpeaking ? 'lumina-speaking-breath 1.2s ease-in-out infinite' : 'lumina-resting-breath 4s ease-in-out infinite'
+        // Add subtle breathing visual effect or walking wobble!
+        animation: isMoving 
+          ? 'lumina-walk 0.4s linear infinite' 
+          : isSpeaking 
+            ? 'lumina-speaking-breath 1.2s ease-in-out infinite' 
+            : 'lumina-resting-breath 4s ease-in-out infinite'
       }}
     >
       {loading && (
@@ -153,8 +161,9 @@ export const AvatarCanvas = ({
             left: '-10%',
             backgroundImage: `url(${src})`,
             backgroundSize: '200% 200%', // 2x2 grid mapping
-            backgroundPosition: bgPosition,
-            transition: 'background-position 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            backgroundPosition: isMoving ? '0% 100%' : bgPosition, // Side profile (bottom-left) when moving
+            transform: isMoving && moveDirection === 'left' ? 'scaleX(-1)' : 'scaleX(1)', // Flip when moving left
+            transition: 'background-position 0.15s ease-out, transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
           }}
         />
       ) : (

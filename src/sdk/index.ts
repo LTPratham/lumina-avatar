@@ -145,7 +145,7 @@ class LuminaAvatarSDK {
         flex-direction: column;
         align-items: flex-end;
         pointer-events: none;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 1.6s cubic-bezier(0.25, 1, 0.5, 1);
       }
       #lumina-avatar-root * {
         box-sizing: border-box;
@@ -175,6 +175,13 @@ class LuminaAvatarSDK {
       @keyframes lumina-speaking-breath {
         0%, 100% { transform: scale(1.015); }
         50% { transform: scale(1.04); }
+      }
+
+      @keyframes lumina-walk {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        25% { transform: translateY(-7px) rotate(-5deg); }
+        50% { transform: translateY(0) rotate(0deg); }
+        75% { transform: translateY(-7px) rotate(5deg); }
       }
     `;
     document.head.appendChild(style);

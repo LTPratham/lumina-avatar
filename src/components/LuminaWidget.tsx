@@ -17,6 +17,17 @@ export const LuminaWidget = ({
   const [coords, setCoords] = useState<{ top?: number; left?: number; fixed: boolean }>({
     fixed: true // Default to bottom-right fixed viewport position
   });
+  const [isMoving, setIsMoving] = useState(false);
+  const [moveDirection, setMoveDirection] = useState<'left' | 'right'>('left');
+
+  const getRootCurrentLeft = () => {
+    const root = document.getElementById('lumina-avatar-root');
+    if (root) {
+      const rect = root.getBoundingClientRect();
+      return rect.left + (window.scrollX || document.documentElement.scrollLeft);
+    }
+    return window.innerWidth - 180;
+  };
 
   useEffect(() => {
     const handleAlignEvent = (e: Event) => {
@@ -24,11 +35,18 @@ export const LuminaWidget = ({
       const selector = customEvent.detail.selector;
       
       const align = calculateElementAlignment(selector, 'left');
+      
+      // Determine direction of motion
+      const currentLeft = getRootCurrentLeft();
+      const targetLeft = align.left;
+      setMoveDirection(targetLeft < currentLeft ? 'left' : 'right');
+
       setCoords({
         top: align.top,
         left: align.left,
         fixed: false
       });
+      setIsMoving(true);
     };
 
     window.addEventListener('lumina:align', handleAlignEvent);
@@ -41,13 +59,30 @@ export const LuminaWidget = ({
   useEffect(() => {
     if (targetElementSelector) {
       const align = calculateElementAlignment(targetElementSelector, 'left');
+      const currentLeft = getRootCurrentLeft();
+      setMoveDirection(align.left < currentLeft ? 'left' : 'right');
+
       setCoords({
         top: align.top,
         left: align.left,
         fixed: false
       });
+      setIsMoving(true);
     }
   }, [targetElementSelector]);
+
+  // Reset isMoving after transition concludes
+  useEffect(() => {
+    let timer: any;
+    if (isMoving) {
+      timer = setTimeout(() => {
+        setIsMoving(false);
+      }, 1800); // match transition glide duration
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isMoving]);
 
   // Side effect to update parent element styles dynamically for absolute coordinates
   useEffect(() => {
@@ -72,7 +107,7 @@ export const LuminaWidget = ({
   return (
     <div class="lumina-widget-wrapper">
       <SpeechBubble themeColor={themeColor} initialMessage={initialMessage} />
-      <AvatarCanvas />
+      <AvatarCanvas isMoving={isMoving} moveDirection={moveDirection} />
     </div>
   );
 };
