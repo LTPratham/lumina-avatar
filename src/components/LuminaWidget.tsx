@@ -49,18 +49,28 @@ export const LuminaWidget = ({
     }
   }, [targetElementSelector]);
 
-  const wrapperStyle = coords.fixed
-    ? {} // Default styles from #lumina-avatar-root container (fixed bottom-right)
-    : {
-        position: 'absolute' as const,
-        top: `${coords.top}px`,
-        left: `${coords.left}px`,
-        transition: 'all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1)',
-        pointerEvents: 'none' as const
-      };
+  // Side effect to update parent element styles dynamically for absolute coordinates
+  useEffect(() => {
+    const root = document.getElementById('lumina-avatar-root');
+    if (!root) return;
+
+    if (coords.fixed) {
+      root.style.position = 'fixed';
+      root.style.bottom = '24px';
+      root.style.right = '24px';
+      root.style.top = 'auto';
+      root.style.left = 'auto';
+    } else {
+      root.style.position = 'absolute';
+      root.style.top = `${coords.top}px`;
+      root.style.left = `${coords.left}px`;
+      root.style.bottom = 'auto';
+      root.style.right = 'auto';
+    }
+  }, [coords]);
 
   return (
-    <div style={wrapperStyle} class="lumina-widget-wrapper">
+    <div class="lumina-widget-wrapper">
       <SpeechBubble themeColor={themeColor} initialMessage={initialMessage} />
       <AvatarCanvas />
     </div>
