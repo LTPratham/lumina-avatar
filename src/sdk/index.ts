@@ -1,5 +1,7 @@
 import { render, h } from 'preact';
 import { LuminaWidget } from '../components/LuminaWidget';
+import { ElevenLabsTTS } from '../audio/elevenLabsTTS';
+
 
 
 // Define configuration interfaces
@@ -21,6 +23,7 @@ class LuminaAvatarSDK {
   private config: LuminaConfig | null = null;
   private container: HTMLDivElement | null = null;
   private isInitialized = false;
+  private tts = new ElevenLabsTTS();
 
   constructor() {
     this.processQueue();
@@ -64,9 +67,9 @@ class LuminaAvatarSDK {
       return;
     }
     console.log('LuminaAvatar speaking:', text);
-    // Dispatch custom event or interact with Preact components
-    const event = new CustomEvent('lumina:speak', { detail: { text } });
-    window.dispatchEvent(event);
+    this.tts.speakStream(text).catch(err => {
+      console.error('LuminaAvatar TTS playback failed:', err);
+    });
   }
 
   /**

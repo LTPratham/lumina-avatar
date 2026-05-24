@@ -67,4 +67,29 @@ export class WhisperSTT {
       this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
     });
   }
+
+  /**
+   * Transcribes a recorded audio blob by sending it to the backend server.
+   */
+  public async transcribe(audioBlob: Blob, serverUrl: string = 'http://localhost:3001'): Promise<string> {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.wav');
+
+    try {
+      const response = await fetch(`${serverUrl}/api/stt`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned error status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.text || '';
+    } catch (err) {
+      console.error('WhisperSTT: Transcription request failed:', err);
+      throw err;
+    }
+  }
 }

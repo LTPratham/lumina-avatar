@@ -4,41 +4,59 @@
  */
 
 export class ElevenLabsTTS {
-  private audioContext: AudioContext | null = null;
-  private queue: AudioBuffer[] = [];
-  private isPlaying = false;
+  private audioElement: HTMLAudioElement | null = null;
+  public isPlaying = false;
 
   constructor() {
-    // Lazy initialize AudioContext on first play gesture to bypass browser autoplay policy
+    // Empty constructor
   }
 
   /**
    * Streams text to audio synthesis.
-   * In production, this will open a WebSocket stream or call an API route returning audio/mpeg stream chunks.
    */
-  public async speakStream(text: string, voiceId: string = '21m00Tcm4TlvDq8ikWAM'): Promise<void> {
-    console.log(`ElevenLabsTTS: Initiating speech synthesis for voice ${voiceId}: "${text}"`);
+  public async speakStream(text: string, serverUrl: string = 'http://localhost:3001'): Promise<void> {
+    console.log(`ElevenLabsTTS: Initiating speech synthesis: "${text}"`);
     
-    // Simulate speech playback
+    // Dispatch event to sync animation
     const speakEvent = new CustomEvent('lumina:speak', { detail: { text } });
     window.dispatchEvent(speakEvent);
 
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (this.audioElement) {
+      this.audioElement.pause();
+      this.audioElement = null;
     }
 
-    // In a fully-implemented state:
-    // 1. Send text to backend /api/tts endpoint
-    // 2. Fetch the ReadableStream of audio buffers
-    // 3. Decode chunks and feed them sequentially into the audio context queue
+    return new Promise((resolve, reject) => {
+      const encodedText = encodeURIComponent(text);
+      this.audioElement = new Audio(`${serverUrl}/api/tts?text=${encodedText}`);
+      this.isPlaying = true;
+
+      this.audioElement.onended = () => {
+        this.isPlaying = false;
+        resolve();
+      };
+
+      this.audioElement.onerror = (e) => {
+        this.isPlaying = false;
+        reject(e);
+      };
+
+      this.audioElement.play().catch((err) => {
+        this.isPlaying = false;
+        reject(err);
+      });
+    });
   }
 
   /**
    * Stops any currently playing synthesized speech.
    */
   public stop(): void {
-    console.log('ElevenLabsTTS: Speech playback stopped. Queue size:', this.queue.length, 'Was playing:', this.isPlaying);
-    this.queue = [];
+    if (this.audioElement) {
+      this.audioElement.pause();
+      this.audioElement = null;
+      console.log('ElevenLabsTTS: Speech playback stopped.');
+    }
     this.isPlaying = false;
   }
 }

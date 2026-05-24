@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
+import { WhisperSTT } from '../audio/whisperSTT';
 
 interface SpeechBubbleProps {
   initialMessage?: string;
@@ -10,6 +11,7 @@ export const SpeechBubble = ({
   themeColor = '#6366f1'
 }: SpeechBubbleProps) => {
   const [message, setMessage] = useState(initialMessage);
+  const stt = useRef(new WhisperSTT());
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -46,13 +48,37 @@ export const SpeechBubble = ({
     };
   }, []);
 
-  const handleMicToggle = () => {
-    setIsListening(!isListening);
+  const handleMicToggle = async () => {
     if (!isListening) {
-      console.log('LuminaAvatar: Speech recording started.');
-      // Stub: Trigger Whisper STT capture
+      try {
+        await stt.current.startRecording();
+        setIsListening(true);
+      } catch (err) {
+        console.error('LuminaAvatar: Failed to start recording:', err);
+      }
     } else {
-      console.log('LuminaAvatar: Speech recording stopped.');
+      setIsListening(false);
+      try {
+        const audioBlob = await stt.current.stopRecording();
+        setDisplayedText('Transcribing speech...');
+        const transcript = await stt.current.transcribe(audioBlob);
+        
+        setMessage(`You: "${transcript}"`);
+        
+        // Simulate a companion response after a short delay
+        setTimeout(() => {
+          const globalName = (window as any).LuminaAvatarObject || 'LuminaAvatar';
+          if ((window as any)[globalName]) {
+            (window as any)[globalName](
+              'speak',
+              `I heard you say: "${transcript}". I am currently running in dev mode, but my transcription and voice synthesis pipelines are fully connected!`
+            );
+          }
+        }, 2000);
+      } catch (err) {
+        console.error('LuminaAvatar: Failed to transcribe audio:', err);
+        setMessage("Sorry, I couldn't transcribe your audio. Make sure the local dev server is running.");
+      }
     }
   };
 
