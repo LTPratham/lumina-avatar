@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LuminaAvatar Widget Demo</title>
+  <style>
+    body {
+      background-color: #0d0e12;
+      color: #ffffff;
+      font-family: 'Inter', system-ui, sans-serif;
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, #a5b4fc, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 16px;
+    }
+    p {
+      color: #9ca3af;
+      margin-bottom: 32px;
+    }
+    .btn {
+      background-color: #6366f1;
+      color: #ffffff;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: #4f46e5;
+    }
+    .test-target {
+      margin-top: 60px;
+      padding: 20px;
+      border: 1px dashed rgba(255,255,255,0.2);
+      border-radius: 8px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>LuminaAvatar Live Test</h1>
+    <p>This is a local verification page to test the embeddable avatar widget loading, layout, and positioning.</p>
+    <button class="btn" id="speak-btn">Trigger Speak Command</button>
+    <br/>
+    <div class="test-target" id="target-feature">
+      🎯 Target UI Feature (For alignment test)
+    </div>
+  </div>
+
+  <!-- Async Loader Script (points to local build bundle) -->
+  <script>
+    (function(w,d,s,o,f,js,fjs){
+      w['LuminaAvatarObject']=o;w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)},w[o].l=1*new Date();
+      js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];js.id=o;js.src=f;js.async=1;fjs.parentNode.insertBefore(js,fjs);
+    }(window,document,'script','LuminaAvatar','../dist/lumina-avatar.js'));
+
+    LuminaAvatar('init', {
+      projectId: 'proj_test_12345',
+      theme: {
+        primaryColor: '#6366f1'
+      }
+    });
+
+    document.getElementById('speak-btn').addEventListener('click', function() {
+      LuminaAvatar('speak', 'Sure! Let me walk you through this section. The button you clicked communicates directly with my voice and speech rendering engine.');
+    });
+
+    // Align to the target feature box after a brief delay
+    setTimeout(function() {
+      LuminaAvatar('align', '#target-feature');
+    }, 4000);
+  </script>
+</body>
+</html>
