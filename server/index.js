@@ -79,8 +79,15 @@ app.post('/api/stt', upload.single('audio'), async (req, res) => {
         "This looks amazing! What is the next step?"
       ];
       const randomTranscript = mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
+      const mockResponses = {
+        "Hello! Show me the onboarding tour please.": "Welcome! I would love to guide you. Just click the blue start button in the middle to begin our walkthrough.",
+        "How do I configure my brand settings?": "You can customize my appearance, voice, and FAQs in the settings page of your Lumina dashboard.",
+        "Can you help me setup the integration SDK?": "Absolutely! Copy the script snippet from our docs and paste it into the body of your HTML file.",
+        "This looks amazing! What is the next step?": "Thank you! Next, let's explore how to configure custom conversational personas."
+      };
+      const randomResponse = mockResponses[randomTranscript];
       
-      return res.json({ text: randomTranscript });
+      return res.json({ text: randomTranscript, response: randomResponse });
     }
 
     // Call OpenAI Whisper API (or Groq Whisper if isGroq is true)
@@ -93,7 +100,89 @@ app.post('/api/stt', upload.single('audio'), async (req, res) => {
     fs.unlinkSync(filePath);
 
     console.log('Transcription result:', response.text);
-    res.json({ text: response.text });
+
+    // Call chat completion for intelligent response with DOM context
+    let aiResponse = "";
+    let commands = [];
+    try {
+      const model = isGroq ? 'llama-3.1-8b-instant' : 'gpt-3.5-turbo';
+      console.log(`Generating AI response using model: ${model}...`);
+      
+      const systemPrompt = `You are LuminaAvatar, an interactive voice guide for SaaS onboarding.
+You are embedded in a webpage and have direct access to its DOM structure.
+The user is speaking to you. You can respond directly AND trigger actions on the webpage.
+
+Here is the current state of the page (simplified DOM elements list):
+${JSON.stringify(domContext, null, 2)}
+
+You can execute the following actions:
+1. 'align': Moves the avatar widget next to the specified element selector.
+2. 'fill': Writes a string into an input field (requires 'value' property).
+3. 'click': Clicks a button or link.
+4. 'highlight': Briefly outlines an element to draw attention to it.
+
+You must respond in JSON format with two keys:
+- "speak": A warm, natural speech response (1 or 2 sentences max).
+- "commands": An array of commands to execute. Each command must be an object with:
+  - "action": "click", "fill", "align", or "highlight"
+  - "selector": The exact CSS selector of the target element from the DOM context (e.g., "#name-field")
+  - "value": (Only for "fill") The string value to write.
+
+Examples:
+- If user says: "write my name Prathamesh", you should respond with:
+  {
+    "speak": "Sure! I have written your name, Prathamesh, in the input field.",
+    "commands": [
+      { "action": "fill", "selector": "#name-field", "value": "Prathamesh" },
+      { "action": "align", "selector": "#name-field" }
+    ]
+  }
+- If user says: "Where is the terms?", you can respond with:
+  {
+    "speak": "Here are the terms and conditions on the page. It details that we guarantee 99.9% uptime.",
+    "commands": [
+      { "action": "align", "selector": "#terms-box" },
+      { "action": "highlight", "selector": "#terms-box" }
+    ]
+  }
+
+Make sure to align to elements when interacting with them. Respond with valid JSON.`;
+
+      const chatCompletion = await openai.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: response.text }
+        ],
+        model: model,
+        response_format: { type: "json_object" },
+        max_tokens: 250
+      });
+
+      const responseContent = chatCompletion.choices[0]?.message?.content || "{}";
+      console.log('LLM Raw Output:', responseContent);
+      
+      let parsed = { speak: responseContent, commands: [] };
+      try {
+        parsed = JSON.parse(responseContent);
+      } catch (parseErr) {
+        console.warn('Failed to parse JSON response from LLM, attempting cleanup:', responseContent);
+        let cleanText = responseContent.replace(/```json/g, '').replace(/```/g, '').trim();
+        try {
+          parsed = JSON.parse(cleanText);
+        } catch (e) {
+          parsed = { speak: cleanText, commands: [] };
+        }
+      }
+      aiResponse = parsed.speak || "";
+      commands = parsed.commands || [];
+    } catch (chatErr) {
+      console.error('Error generating chat completion:', chatErr);
+      aiResponse = `I heard you say: "${response.text}". I had trouble generating a reply, but my speech synthesis is working!`;
+    }
+
+    console.log('AI Response:', aiResponse);
+    console.log('Commands:', commands);
+    res.json({ text: response.text, response: aiResponse, commands: commands });
   } catch (error) {
     console.error('Error transcribing audio:', error);
     // Cleanup if file exists

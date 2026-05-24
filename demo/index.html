@@ -3,105 +3,332 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LuminaAvatar Widget Demo</title>
-  <!-- Error Overlay Debugger -->
+  <title>LuminaAvatar Intelligent Demo</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
   <script>
     window.addEventListener('error', function(e) {
       var errDiv = document.createElement('div');
-      errDiv.style.position = 'fixed';
-      errDiv.style.top = '10px';
-      errDiv.style.left = '10px';
-      errDiv.style.backgroundColor = '#ef4444';
-      errDiv.style.color = '#ffffff';
-      errDiv.style.padding = '16px';
-      errDiv.style.borderRadius = '8px';
-      errDiv.style.zIndex = '9999999';
-      errDiv.style.fontFamily = 'monospace';
-      errDiv.style.fontSize = '12px';
-      errDiv.style.maxWidth = '90vw';
-      errDiv.style.whiteSpace = 'pre-wrap';
-      errDiv.innerText = 'JS Error: ' + e.message + '\nAt: ' + e.filename + ':' + e.lineno + ':' + e.colno;
+      errDiv.className = 'error-overlay';
+      errDiv.innerText = 'JS Error: ' + e.message + '\nAt: ' + e.filename + ':' + e.lineno;
       document.body.appendChild(errDiv);
     });
     window.addEventListener('unhandledrejection', function(e) {
       var errDiv = document.createElement('div');
-      errDiv.style.position = 'fixed';
-      errDiv.style.top = '10px';
-      errDiv.style.left = '10px';
-      errDiv.style.backgroundColor = '#f97316';
-      errDiv.style.color = '#ffffff';
-      errDiv.style.padding = '16px';
-      errDiv.style.borderRadius = '8px';
-      errDiv.style.zIndex = '9999999';
-      errDiv.style.fontFamily = 'monospace';
-      errDiv.style.fontSize = '12px';
-      errDiv.style.maxWidth = '90vw';
-      errDiv.style.whiteSpace = 'pre-wrap';
+      errDiv.className = 'error-overlay orange';
       errDiv.innerText = 'Promise Rejection: ' + e.reason;
       document.body.appendChild(errDiv);
     });
   </script>
   <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: rgba(22, 28, 45, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-color: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary-color: #6366f1;
+      --primary-hover: #4f46e5;
+    }
+
     body {
-      background-color: #0d0e12;
-      color: #ffffff;
-      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Plus Jakarta Sans', sans-serif;
       margin: 0;
-      padding: 40px;
+      padding: 40px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       min-height: 100vh;
+      overflow-x: hidden;
     }
+
+    .background-glow {
+      position: absolute;
+      top: -10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%);
+      z-index: -1;
+      pointer-events: none;
+    }
+
     .container {
-      max-width: 600px;
-      text-align: center;
+      max-width: 900px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
     }
+
+    header {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
     h1 {
-      font-size: 2.5rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 700;
       background: linear-gradient(135deg, #a5b4fc, #6366f1);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 16px;
+      margin: 0 0 12px 0;
+      letter-spacing: -0.02em;
     }
-    p {
-      color: #9ca3af;
-      margin-bottom: 32px;
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
     }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+    }
+
+    h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #d1d5db;
+    }
+
+    input {
+      background-color: rgba(10, 15, 30, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+
     .btn {
-      background-color: #6366f1;
+      background-color: var(--primary-color);
       color: #ffffff;
       border: none;
-      padding: 12px 24px;
+      padding: 14px 28px;
       font-size: 1rem;
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
-      transition: background-color 0.2s;
+      transition: background-color 0.2s, transform 0.1s;
+      outline: none;
     }
+
     .btn:hover {
-      background-color: #4f46e5;
+      background-color: var(--primary-hover);
     }
-    .test-target {
-      margin-top: 60px;
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
+    .btn-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Terms styling */
+    .terms-box {
+      background-color: rgba(10, 15, 30, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
       padding: 20px;
-      border: 1px dashed rgba(255,255,255,0.2);
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: #d1d5db;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .term-line {
+      display: flex;
+      gap: 8px;
+    }
+
+    .term-num {
+      color: var(--primary-color);
+      font-weight: 600;
+      min-width: 20px;
+    }
+
+    /* Error and Toast Overlay */
+    .error-overlay {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background-color: #ef4444;
+      color: #ffffff;
+      padding: 16px;
       border-radius: 8px;
-      display: inline-block;
+      z-index: 9999999;
+      font-family: monospace;
+      max-width: 90vw;
+    }
+    .error-overlay.orange {
+      background-color: #f97316;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      background-color: #10b981;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 99999;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
     }
   </style>
 </head>
 <body>
+  <div class="background-glow"></div>
+  
   <div class="container">
-    <h1>LuminaAvatar Live Test</h1>
-    <p>This is a local verification page to test the embeddable avatar widget loading, layout, and positioning.</p>
-    <button class="btn" id="speak-btn">Trigger Speak Command</button>
-    <br/>
-    <div class="test-target" id="target-feature">
-      🎯 Target UI Feature (For alignment test)
+    <header>
+      <h1>LuminaAvatar Intelligent Demo</h1>
+      <p>Interact with the avatar widget hands-free using your voice. Tell the avatar to highlight inputs, fill in forms, and read text on the screen.</p>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- Onboarding & Login Card -->
+      <div class="card" id="form-card">
+        <h2>👤 User Onboarding</h2>
+        <form id="onboarding-form" onsubmit="event.preventDefault(); showToast('Login Form Submitted!');">
+          <div class="form-group">
+            <label for="name-field">Full Name</label>
+            <input type="text" id="name-field" name="name" placeholder="Speak to fill your name..." autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="password-field">Password</label>
+            <input type="password" id="password-field" name="password" placeholder="••••••••">
+          </div>
+          <div style="margin-top: 24px; display: flex; gap: 12px;">
+            <button class="btn" id="login-button" type="submit">Sign In</button>
+            <button class="btn btn-secondary" id="speak-btn" type="button">Trigger Speech</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Terms & Conditions Card -->
+      <div class="card" id="terms-card">
+        <h2>📄 Platform Terms</h2>
+        <div class="terms-box" id="terms-box">
+          <div class="term-line" id="term-line-1">
+            <span class="term-num">1.</span>
+            <span>LuminaAvatar provides embeddable AI voice companionship for B2B SaaS onboarding.</span>
+          </div>
+          <div class="term-line" id="term-line-2">
+            <span class="term-num">2.</span>
+            <span>By using this application, you authorize the widget to navigate, select, and interact with DOM elements dynamically on your page.</span>
+          </div>
+          <div class="term-line" id="term-line-3">
+            <span class="term-num">3.</span>
+            <span style="font-weight: 500; color: #ffffff;">Terms of Service: We guarantee 99.9% uptime for AI voice streaming, utilizing low-latency edge rendering.</span>
+          </div>
+          <div class="term-line" id="term-line-4">
+            <span class="term-num">4.</span>
+            <span>All interactions and inputs are stored locally and securely routed via a configured API gateway.</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+
+  <!-- Toast Element -->
+  <div class="toast" id="action-toast">Action Completed!</div>
+
+  <script>
+    function showToast(message) {
+      const toast = document.getElementById('action-toast');
+      toast.innerText = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Attach listeners for visual confirmation of DOM events
+    document.getElementById('login-button').addEventListener('click', function() {
+      showToast('Login Button Clicked!');
+    });
+  </script>
 
   <!-- Async Loader Script (points to local source file for dev server) -->
   <script>
@@ -120,13 +347,8 @@
     });
 
     document.getElementById('speak-btn').addEventListener('click', function() {
-      LuminaAvatar('speak', 'Sure! Let me walk you through this section. The button you clicked communicates directly with my voice and speech rendering engine.');
+      LuminaAvatar('speak', 'Sure! The login card and terms box are now interactive. Try speaking to me to fill out the form or read the lines of the terms.');
     });
-
-    // Align to the target feature box after a brief delay
-    setTimeout(function() {
-      LuminaAvatar('align', '#target-feature');
-    }, 4000);
   </script>
 </body>
 </html>
