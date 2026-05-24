@@ -62,7 +62,15 @@ app.post('/api/stt', upload.single('audio'), async (req, res) => {
     }
 
     const filePath = req.file.path;
-    console.log('Received audio file for transcription:', req.file.originalname, 'Size:', req.file.size);
+    const domContextStr = req.body.domContext || '[]';
+    console.log('Received audio file for transcription:', req.file.originalname, 'Size:', req.file.size, 'Context size:', domContextStr.length);
+
+    let domContext = [];
+    try {
+      domContext = JSON.parse(domContextStr);
+    } catch (e) {
+      console.warn('Failed to parse DOM context in /api/stt:', e);
+    }
 
     if (isOpenAiMock) {
       // Mock mode
