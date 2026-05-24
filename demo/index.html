@@ -66,12 +66,14 @@
     </div>
   </div>
 
-  <!-- Async Loader Script (points to local build bundle) -->
+  <!-- Async Loader Script (points to local source file for dev server) -->
   <script>
     (function(w,d,s,o,f,js,fjs){
       w['LuminaAvatarObject']=o;w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)},w[o].l=1*new Date();
-      js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];js.id=o;js.src=f;js.async=1;fjs.parentNode.insertBefore(js,fjs);
-    }(window,document,'script','LuminaAvatar','../dist/lumina-avatar.js'));
+      js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];js.id=o;js.src=f;js.async=1;
+      if (f.endsWith('.ts') || f.endsWith('.tsx')) js.type = 'module';
+      fjs.parentNode.insertBefore(js,fjs);
+    }(window,document,'script','LuminaAvatar','/src/sdk/index.ts'));
 
     LuminaAvatar('init', {
       projectId: 'proj_test_12345',
