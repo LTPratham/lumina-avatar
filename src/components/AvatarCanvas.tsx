@@ -25,14 +25,17 @@ export const AvatarCanvas = ({
         src,
         canvas: canvasRef.current,
         autoplay: true,
-        stateMachines: stateMachineName,
+        stateMachines: src === '/avatar.riv' ? undefined : stateMachineName,
         onLoad: () => {
           setLoading(false);
           console.log('Rive avatar animation loaded successfully.');
           
-          // Access inputs if necessary
-          const inputs = riveInstance.stateMachineInputs(stateMachineName);
-          console.log('Available state machine inputs:', inputs);
+          try {
+            const inputs = riveInstance.stateMachineInputs(stateMachineName) || [];
+            console.log('Available state machine inputs:', inputs);
+          } catch (e) {
+            console.warn('LuminaAvatar: No state machine inputs found for:', stateMachineName);
+          }
         },
         onLoadError: (err) => {
           console.error('Error loading Rive file:', err);
@@ -62,15 +65,17 @@ export const AvatarCanvas = ({
       const customEvent = e as CustomEvent<{ text: string }>;
       console.log('Rive canvas triggered speak state for:', customEvent.detail.text);
       if (riveRef.current) {
-        const inputs = riveRef.current.stateMachineInputs(stateMachineName);
-        // Look for inputs like "isTalking" or "talk" and toggle them if they exist
-        const isTalkingInput = inputs.find(i => i.name === 'isTalking' || i.name === 'Talking');
-        if (isTalkingInput) {
-          isTalkingInput.value = true;
-          // Set back to false after a simulated time or when audio finishes
-          setTimeout(() => {
-            isTalkingInput.value = false;
-          }, 3000);
+        try {
+          const inputs = riveRef.current.stateMachineInputs(stateMachineName) || [];
+          const isTalkingInput = inputs.find(i => i.name === 'isTalking' || i.name === 'Talking');
+          if (isTalkingInput) {
+            isTalkingInput.value = true;
+            setTimeout(() => {
+              isTalkingInput.value = false;
+            }, 3000);
+          }
+        } catch (err) {
+          console.warn('LuminaAvatar: Failed to set talk state inputs:', err);
         }
       }
     };
