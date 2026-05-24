@@ -8,7 +8,7 @@ interface AvatarCanvasProps {
 }
 
 export const AvatarCanvas = ({
-  src = 'https://public.rive.app/community/runtime-files/2191-4328-interactive-character.riv', // Default sample interactive Rive file
+  src = '/avatar.riv', // Locally hosted Rive animation file
   stateMachineName = 'State Machine 1',
   className = ''
 }: AvatarCanvasProps) => {
