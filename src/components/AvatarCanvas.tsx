@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { Rive } from '@rive-app/canvas';
 
 interface AvatarCanvasProps {
-  src?: string; // URL to the .riv file
+  src?: string; // URL to the .riv file or image
   stateMachineName?: string;
   className?: string;
 }
 
 export const AvatarCanvas = ({
-  src = '/avatar.riv', // Locally hosted Rive animation file
+  src = '/avatar.png', // Default to our beautiful new custom cartoon avatar sheet!
   stateMachineName = 'State Machine 1',
   className = ''
 }: AvatarCanvasProps) => {
@@ -16,9 +16,17 @@ export const AvatarCanvas = ({
   const riveRef = useRef<Rive | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const isImageAvatar = src.endsWith('.png') || src.endsWith('.jpg') || src.endsWith('.jpeg') || src.endsWith('.webp');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [bgPosition, setBgPosition] = useState('0% 0%');
 
+  // Handle Rive initialization if it is a .riv file
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (isImageAvatar || !canvasRef.current) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const riveInstance = new Rive({
@@ -29,13 +37,6 @@ export const AvatarCanvas = ({
         onLoad: () => {
           setLoading(false);
           console.log('Rive avatar animation loaded successfully.');
-          
-          try {
-            const inputs = riveInstance.stateMachineInputs(stateMachineName) || [];
-            console.log('Available state machine inputs:', inputs);
-          } catch (e) {
-            console.warn('LuminaAvatar: No state machine inputs found for:', stateMachineName);
-          }
         },
         onLoadError: (err) => {
           console.error('Error loading Rive file:', err);
@@ -57,22 +58,20 @@ export const AvatarCanvas = ({
         riveRef.current = null;
       }
     };
-  }, [src, stateMachineName]);
+  }, [src, stateMachineName, isImageAvatar]);
 
-  // Listen for custom "speak" events to trigger animation states
+  // Listen for speech triggers from the TTS pipeline
   useEffect(() => {
-    const handleSpeak = (e: Event) => {
-      const customEvent = e as CustomEvent<{ text: string }>;
-      console.log('Rive canvas triggered speak state for:', customEvent.detail.text);
-      if (riveRef.current) {
+    const handleSpeak = () => {
+      setIsSpeaking(true);
+      
+      // Also trigger Rive animation if active
+      if (riveRef.current && !isImageAvatar) {
         try {
           const inputs = riveRef.current.stateMachineInputs(stateMachineName) || [];
           const isTalkingInput = inputs.find(i => i.name === 'isTalking' || i.name === 'Talking');
           if (isTalkingInput) {
             isTalkingInput.value = true;
-            setTimeout(() => {
-              isTalkingInput.value = false;
-            }, 3000);
           }
         } catch (err) {
           console.warn('LuminaAvatar: Failed to set talk state inputs:', err);
@@ -80,14 +79,58 @@ export const AvatarCanvas = ({
       }
     };
 
+    const handleSpeakEnd = () => {
+      setIsSpeaking(false);
+      
+      if (riveRef.current && !isImageAvatar) {
+        try {
+          const inputs = riveRef.current.stateMachineInputs(stateMachineName) || [];
+          const isTalkingInput = inputs.find(i => i.name === 'isTalking' || i.name === 'Talking');
+          if (isTalkingInput) {
+            isTalkingInput.value = false;
+          }
+        } catch (err) {
+          console.warn('LuminaAvatar: Failed to clear talk state inputs:', err);
+        }
+      }
+    };
+
     window.addEventListener('lumina:speak', handleSpeak);
+    window.addEventListener('lumina:speak-end', handleSpeakEnd);
+    
     return () => {
       window.removeEventListener('lumina:speak', handleSpeak);
+      window.removeEventListener('lumina:speak-end', handleSpeakEnd);
     };
-  }, [stateMachineName]);
+  }, [stateMachineName, isImageAvatar]);
+
+  // Image Avatar Animation loop when speaking
+  useEffect(() => {
+    if (!isImageAvatar || !isSpeaking) {
+      setBgPosition('0% 0%'); // Default front resting view
+      return;
+    }
+
+    let frame = 0;
+    const interval = setInterval(() => {
+      // Alternate between Front-facing quadrant (0% 0%) and Three-Quarter quadrant (100% 0%)
+      // This mimics talking/head movements dynamically!
+      setBgPosition(frame % 2 === 0 ? '100% 0%' : '0% 0%');
+      frame++;
+    }, 220); // Sync animation speed
+
+    return () => clearInterval(interval);
+  }, [isSpeaking, isImageAvatar]);
 
   return (
-    <div class={`lumina-avatar-container ${className}`} style={containerStyle}>
+    <div 
+      className={`lumina-avatar-container ${className}`} 
+      style={{
+        ...containerStyle,
+        // Add subtle breathing visual effect
+        animation: isSpeaking ? 'lumina-speaking-breath 1.2s ease-in-out infinite' : 'lumina-resting-breath 4s ease-in-out infinite'
+      }}
+    >
       {loading && (
         <div style={shimmerStyle}>
           <div style={spinnerStyle}></div>
@@ -99,35 +142,52 @@ export const AvatarCanvas = ({
           <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>{error}</p>
         </div>
       )}
-      <canvas
-        ref={canvasRef}
-        width={300}
-        height={300}
-        style={{
-          width: '100%',
-          height: '100%',
-          opacity: loading || error ? 0 : 1,
-          transition: 'opacity 0.5s ease',
-          display: 'block'
-        }}
-      />
+
+      {isImageAvatar ? (
+        <div 
+          style={{
+            width: '120%', // Make it slightly larger to zoom in on chest/face quadrant nicely
+            height: '120%',
+            position: 'absolute' as const,
+            top: '-5%', // Shift up to center the head/body properly
+            left: '-10%',
+            backgroundImage: `url(${src})`,
+            backgroundSize: '200% 200%', // 2x2 grid mapping
+            backgroundPosition: bgPosition,
+            transition: 'background-position 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          }}
+        />
+      ) : (
+        <canvas
+          ref={canvasRef}
+          width={300}
+          height={300}
+          style={{
+            width: '100%',
+            height: '100%',
+            opacity: loading || error ? 0 : 1,
+            transition: 'opacity 0.5s ease',
+            display: 'block'
+          }}
+        />
+      )}
     </div>
   );
 };
 
 // Modern styles for the widget avatar container
 const containerStyle = {
-  width: '180px',
-  height: '180px',
+  width: '150px', // slightly more compact and clean profile widget circle
+  height: '150px',
   borderRadius: '50%',
   overflow: 'hidden',
-  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  backdropFilter: 'blur(16px)',
-  border: '1px solid rgba(255, 255, 255, 0.2)',
-  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+  backgroundColor: 'rgba(15, 23, 42, 0.65)',
+  backdropFilter: 'blur(20px)',
+  border: '1.5px solid rgba(255, 255, 255, 0.12)',
+  boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)',
   position: 'relative' as const,
   cursor: 'pointer',
-  transition: 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease',
+  transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
 };
 
 const shimmerStyle = {
@@ -140,11 +200,12 @@ const shimmerStyle = {
   justifyContent: 'center',
   alignItems: 'center',
   backgroundColor: 'rgba(20, 20, 25, 0.85)',
+  zIndex: 10
 };
 
 const spinnerStyle = {
-  width: '32px',
-  height: '32px',
+  width: '28px',
+  height: '28px',
   border: '3px solid rgba(99, 102, 241, 0.1)',
   borderTop: '3px solid #6366f1',
   borderRadius: '50%',
@@ -165,6 +226,5 @@ const errorStyle = {
   color: '#ef4444',
   textAlign: 'center' as const,
   backgroundColor: 'rgba(20, 20, 25, 0.95)',
+  zIndex: 10
 };
-
-// Global keyframe for spinner animation is added dynamically in index.ts styles

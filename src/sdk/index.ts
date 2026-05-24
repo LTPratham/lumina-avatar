@@ -166,6 +166,16 @@ class LuminaAvatarSDK {
         0%, 100% { opacity: 0.6; }
         50% { opacity: 1; }
       }
+
+      @keyframes lumina-resting-breath {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.015); }
+      }
+
+      @keyframes lumina-speaking-breath {
+        0%, 100% { transform: scale(1.015); }
+        50% { transform: scale(1.04); }
+      }
     `;
     document.head.appendChild(style);
   }

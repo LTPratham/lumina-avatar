@@ -11,6 +11,13 @@ export class ElevenLabsTTS {
     // Empty constructor
   }
 
+  private setSpeechEnded(): void {
+    this.isPlaying = false;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lumina:speak-end'));
+    }
+  }
+
   public async speakStream(text: string, serverUrl: string = 'http://localhost:3001'): Promise<void> {
     console.log(`ElevenLabsTTS: Initiating speech synthesis: "${text}"`);
     
@@ -44,12 +51,12 @@ export class ElevenLabsTTS {
           const utterance = new SpeechSynthesisUtterance(text);
           
           utterance.onend = () => {
-            this.isPlaying = false;
+            this.setSpeechEnded();
             resolve();
           };
 
           utterance.onerror = () => {
-            this.isPlaying = false;
+            this.setSpeechEnded();
             resolve();
           };
 
@@ -73,19 +80,19 @@ export class ElevenLabsTTS {
         this.isPlaying = true;
 
         this.audioElement.onended = () => {
-          this.isPlaying = false;
+          this.setSpeechEnded();
           URL.revokeObjectURL(audioUrl);
           resolve();
         };
 
         this.audioElement.onerror = (e) => {
-          this.isPlaying = false;
+          this.setSpeechEnded();
           URL.revokeObjectURL(audioUrl);
           reject(e);
         };
 
         this.audioElement.play().catch((err) => {
-          this.isPlaying = false;
+          this.setSpeechEnded();
           URL.revokeObjectURL(audioUrl);
           reject(err);
         });
@@ -97,12 +104,12 @@ export class ElevenLabsTTS {
         const utterance = new SpeechSynthesisUtterance(text);
         
         utterance.onend = () => {
-          this.isPlaying = false;
+          this.setSpeechEnded();
           resolve();
         };
 
         utterance.onerror = () => {
-          this.isPlaying = false;
+          this.setSpeechEnded();
           resolve();
         };
 
@@ -122,7 +129,7 @@ export class ElevenLabsTTS {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
-    this.isPlaying = false;
+    this.setSpeechEnded();
     console.log('ElevenLabsTTS: Speech playback stopped.');
   }
 }
