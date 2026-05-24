@@ -4,6 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LuminaAvatar Widget Demo</title>
+  <!-- Error Overlay Debugger -->
+  <script>
+    window.addEventListener('error', function(e) {
+      var errDiv = document.createElement('div');
+      errDiv.style.position = 'fixed';
+      errDiv.style.top = '10px';
+      errDiv.style.left = '10px';
+      errDiv.style.backgroundColor = '#ef4444';
+      errDiv.style.color = '#ffffff';
+      errDiv.style.padding = '16px';
+      errDiv.style.borderRadius = '8px';
+      errDiv.style.zIndex = '9999999';
+      errDiv.style.fontFamily = 'monospace';
+      errDiv.style.fontSize = '12px';
+      errDiv.style.maxWidth = '90vw';
+      errDiv.style.whiteSpace = 'pre-wrap';
+      errDiv.innerText = 'JS Error: ' + e.message + '\nAt: ' + e.filename + ':' + e.lineno + ':' + e.colno;
+      document.body.appendChild(errDiv);
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var errDiv = document.createElement('div');
+      errDiv.style.position = 'fixed';
+      errDiv.style.top = '10px';
+      errDiv.style.left = '10px';
+      errDiv.style.backgroundColor = '#f97316';
+      errDiv.style.color = '#ffffff';
+      errDiv.style.padding = '16px';
+      errDiv.style.borderRadius = '8px';
+      errDiv.style.zIndex = '9999999';
+      errDiv.style.fontFamily = 'monospace';
+      errDiv.style.fontSize = '12px';
+      errDiv.style.maxWidth = '90vw';
+      errDiv.style.whiteSpace = 'pre-wrap';
+      errDiv.innerText = 'Promise Rejection: ' + e.reason;
+      document.body.appendChild(errDiv);
+    });
+  </script>
   <style>
     body {
       background-color: #0d0e12;
