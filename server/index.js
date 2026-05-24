@@ -130,7 +130,7 @@ You can execute the following actions:
 4. 'highlight': Briefly outlines an element to draw attention to it.
 
 You must respond in JSON format with two keys:
-- "speak": A warm, natural speech response (1 or 2 sentences max).
+- "speak": An extremely brief, natural, conversational speech response. You MUST keep this speech response extremely short, punchy, and direct (maximum 1 short sentence or phrase, e.g., 'Sure, doing that for you!', 'Filled in your name. What is next?', 'Clicking the login button!'). Avoid long explanations, list readouts, or technical descriptions.
 - "commands": An array of commands to execute. Each command must be an object with:
   - "action": "click", "fill", "align", or "highlight"
   - "selector": The exact CSS selector of the target element from the DOM context (e.g., "#name-field")
@@ -139,7 +139,7 @@ You must respond in JSON format with two keys:
 Examples:
 - If user says: "write my name Prathamesh", you should respond with:
   {
-    "speak": "Sure! I have written your name, Prathamesh, in the input field.",
+    "speak": "Sure, doing that for you! I have filled in your name.",
     "commands": [
       { "action": "fill", "selector": "#name-field", "value": "Prathamesh" },
       { "action": "align", "selector": "#name-field" }
@@ -147,7 +147,7 @@ Examples:
   }
 - If user says: "Where is the terms?", you can respond with:
   {
-    "speak": "Here are the terms and conditions on the page. It details that we guarantee 99.9% uptime.",
+    "speak": "Here are the terms and conditions on the page.",
     "commands": [
       { "action": "align", "selector": "#terms-box" },
       { "action": "highlight", "selector": "#terms-box" }
@@ -163,7 +163,7 @@ Make sure to align to elements when interacting with them. Respond with valid JS
         ],
         model: model,
         response_format: { type: "json_object" },
-        max_tokens: 250
+        max_tokens: 120
       });
 
       const responseContent = chatCompletion.choices[0]?.message?.content || "{}";
@@ -236,7 +236,7 @@ You can execute the following actions:
 4. 'highlight': Briefly outlines an element to draw attention to it.
 
 You must respond in JSON format with two keys:
-- "speak": A warm, natural speech response explaining the page elements and how you can assist (1 or 2 sentences max).
+- "speak": An extremely brief, natural, conversational speech response. You MUST keep this speech response extremely short, punchy, and direct (maximum 1 short sentence or phrase, e.g., 'Sure, doing that for you!', 'Filled in your name. What is next?', 'Clicking the login button!'). Avoid long explanations, list readouts, or technical descriptions.
 - "commands": An array of commands to execute. Each command must be an object with:
   - "action": "click", "fill", "align", or "highlight"
   - "selector": The exact CSS selector of the target element from the DOM context (e.g., "#name-field")
@@ -245,7 +245,7 @@ You must respond in JSON format with two keys:
 Examples:
 - If user says: "read the screen", you should respond with:
   {
-    "speak": "I can see a User Onboarding card with Name and Password fields, and a Platform Terms block with four lines. How should we proceed?",
+    "speak": "I can see an Onboarding form and Terms block. How should we proceed?",
     "commands": [
       { "action": "highlight", "selector": "#form-card" },
       { "action": "highlight", "selector": "#terms-card" }
@@ -261,7 +261,7 @@ Respond with valid JSON.`;
       ],
       model: model,
       response_format: { type: "json_object" },
-      max_tokens: 250
+      max_tokens: 120
     });
 
     const responseContent = chatCompletion.choices[0]?.message?.content || "{}";

@@ -126,18 +126,86 @@ export const AvatarCanvas = ({
     return () => clearInterval(interval);
   }, [isSpeaking, isImageAvatar, isMoving]);
 
+  const [pose, setPose] = useState<'idle' | 'walk' | 'run' | 'kick' | 'stomp' | 'hang'>('idle');
+
+  // Listen for pose triggers
+  useEffect(() => {
+    const handlePose = (e: Event) => {
+      const customEvent = e as CustomEvent<{ pose: any }>;
+      if (customEvent.detail && customEvent.detail.pose) {
+        setPose(customEvent.detail.pose);
+      }
+    };
+    window.addEventListener('lumina:pose', handlePose);
+    return () => {
+      window.removeEventListener('lumina:pose', handlePose);
+    };
+  }, []);
+
+  const getActiveAnimations = () => {
+    const activePose = isMoving && pose === 'idle' ? 'walk' : pose;
+
+    let bodyAnim = '';
+    let shadowAnim = '';
+
+    switch (activePose) {
+      case 'walk':
+        bodyAnim = 'lumina-walk 0.4s linear infinite';
+        shadowAnim = 'lumina-shadow-walk 0.4s linear infinite';
+        break;
+      case 'run':
+        bodyAnim = 'lumina-walk 0.28s linear infinite';
+        shadowAnim = 'lumina-shadow-walk 0.28s linear infinite';
+        break;
+      case 'stomp':
+        bodyAnim = 'lumina-stomp 0.8s ease-out forwards';
+        shadowAnim = 'lumina-shadow-stomp 0.8s ease-out forwards';
+        break;
+      case 'kick':
+        bodyAnim = 'lumina-hang-kick 1.0s ease-in-out forwards';
+        shadowAnim = 'lumina-shadow-kick 1.0s ease-in-out forwards';
+        break;
+      case 'hang':
+        bodyAnim = 'lumina-hang 0.6s ease-in-out infinite';
+        shadowAnim = 'lumina-shadow-hang 0.6s ease-in-out infinite';
+        break;
+      case 'idle':
+      default:
+        if (isSpeaking) {
+          bodyAnim = 'lumina-speaking-breath 1.2s ease-in-out infinite';
+          shadowAnim = 'lumina-shadow-speak 1.2s ease-in-out infinite';
+        } else {
+          bodyAnim = 'lumina-resting-breath 4s ease-in-out infinite';
+          shadowAnim = 'lumina-shadow-breath 4s ease-in-out infinite';
+        }
+        break;
+    }
+    return { bodyAnim, shadowAnim };
+  };
+
+  const getBackgroundPosition = () => {
+    if (pose === 'walk' || pose === 'run' || pose === 'hang' || pose === 'kick' || pose === 'stomp') {
+      return '0% 100%'; // Side profile walking sprite for active motion and actions
+    }
+    return isMoving ? '0% 100%' : bgPosition;
+  };
+
+  const { bodyAnim, shadowAnim } = getActiveAnimations();
+
+  const handleMouseEnter = () => {
+    if (pose === 'idle' && !isMoving) {
+      window.dispatchEvent(new CustomEvent('lumina:pose', { detail: { pose: 'stomp' } }));
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('lumina:pose', { detail: { pose: 'idle' } }));
+      }, 800); // match stomp duration
+    }
+  };
+
   return (
     <div 
       className={`lumina-avatar-container ${className}`} 
-      style={{
-        ...containerStyle,
-        // Add subtle breathing visual effect or walking wobble!
-        animation: isMoving 
-          ? 'lumina-walk 0.4s linear infinite' 
-          : isSpeaking 
-            ? 'lumina-speaking-breath 1.2s ease-in-out infinite' 
-            : 'lumina-resting-breath 4s ease-in-out infinite'
-      }}
+      style={containerStyle}
+      onMouseEnter={handleMouseEnter}
     >
       {loading && (
         <div style={shimmerStyle}>
@@ -151,49 +219,72 @@ export const AvatarCanvas = ({
         </div>
       )}
 
-      {isImageAvatar ? (
-        <div 
-          style={{
-            width: '120%', // Make it slightly larger to zoom in on chest/face quadrant nicely
-            height: '120%',
-            position: 'absolute' as const,
-            top: '-5%', // Shift up to center the head/body properly
-            left: '-10%',
-            backgroundImage: `url(${src})`,
-            backgroundSize: '200% 200%', // 2x2 grid mapping
-            backgroundPosition: isMoving ? '0% 100%' : bgPosition, // Side profile (bottom-left) when moving
-            transform: isMoving && moveDirection === 'left' ? 'scaleX(-1)' : 'scaleX(1)', // Flip when moving left
-            transition: 'background-position 0.15s ease-out, transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-          }}
-        />
-      ) : (
-        <canvas
-          ref={canvasRef}
-          width={300}
-          height={300}
-          style={{
-            width: '100%',
-            height: '100%',
-            opacity: loading || error ? 0 : 1,
-            transition: 'opacity 0.5s ease',
-            display: 'block'
-          }}
-        />
-      )}
+      {/* The Animated Character Body (either Image Div or Rive Canvas) */}
+      <div
+        className="lumina-avatar-body"
+        style={{
+          width: '100%',
+          height: '92%', // Leave space at bottom for shadow
+          position: 'absolute' as const,
+          top: 0,
+          left: 0,
+          animation: bodyAnim
+        }}
+      >
+        {isImageAvatar ? (
+          <div 
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundImage: `url(${src})`,
+              backgroundSize: '200% 200%', // 2x2 grid mapping
+              backgroundPosition: getBackgroundPosition(), // Side profile (bottom-left) when moving or acting
+              transform: isMoving && moveDirection === 'left' ? 'scaleX(-1)' : 'scaleX(1)', // Flip when moving left
+              transition: 'background-position 0.15s ease-out, transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+        ) : (
+          <canvas
+            ref={canvasRef}
+            width={300}
+            height={300}
+            style={{
+              width: '100%',
+              height: '100%',
+              opacity: loading || error ? 0 : 1,
+              transition: 'opacity 0.5s ease',
+              display: 'block'
+            }}
+          />
+        )}
+      </div>
+
+      {/* Grounded Shadow */}
+      <div 
+        className="lumina-avatar-shadow"
+        style={{
+          width: '44px',
+          height: '6px',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(0, 0, 0, 0.25)',
+          filter: 'blur(2px)',
+          position: 'absolute' as const,
+          bottom: '1px',
+          left: 'calc(50% - 22px)',
+          zIndex: -1,
+          animation: shadowAnim
+        }}
+      />
     </div>
   );
 };
 
 // Modern styles for the widget avatar container
 const containerStyle = {
-  width: '150px', // slightly more compact and clean profile widget circle
-  height: '150px',
-  borderRadius: '50%',
-  overflow: 'hidden',
-  backgroundColor: 'rgba(15, 23, 42, 0.65)',
-  backdropFilter: 'blur(20px)',
-  border: '1.5px solid rgba(255, 255, 255, 0.12)',
-  boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)',
+  width: '75px', // width of the full-body character
+  height: '135px', // height of the full-body character
+  overflow: 'visible', // let shadow and hover bubble overflow cleanly
   position: 'relative' as const,
   cursor: 'pointer',
   transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
@@ -208,7 +299,7 @@ const shimmerStyle = {
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  backgroundColor: 'rgba(20, 20, 25, 0.85)',
+  backgroundColor: 'transparent',
   zIndex: 10
 };
 
@@ -234,6 +325,8 @@ const errorStyle = {
   padding: '16px',
   color: '#ef4444',
   textAlign: 'center' as const,
-  backgroundColor: 'rgba(20, 20, 25, 0.95)',
+  backgroundColor: 'rgba(15, 23, 42, 0.95)',
+  borderRadius: '12px',
+  border: '1px solid rgba(239, 68, 68, 0.3)',
   zIndex: 10
 };

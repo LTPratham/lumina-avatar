@@ -156,52 +156,99 @@ export const SpeechBubble = ({
     }, 2000);
   };
 
-  const executeDOMCommands = (commands: any[]) => {
-    commands.forEach((cmd, idx) => {
-      setTimeout(() => {
-        const { action, selector, value } = cmd;
-        console.log(`LuminaAvatar executing command:`, action, selector, value);
-        
-        if (!selector) return;
-        
-        const element = document.querySelector(selector) as HTMLElement;
-        if (!element) {
-          console.warn(`LuminaAvatar: Selector "${selector}" not found on page.`);
-          return;
-        }
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-        switch (action) {
-          case 'click':
-            highlightElement(element);
-            setTimeout(() => {
-              element.click();
-            }, 600);
-            break;
-            
-          case 'fill':
-            highlightElement(element);
-            setTimeout(() => {
-              if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-                element.value = value || '';
-                element.dispatchEvent(new Event('input', { bubbles: true }));
-                element.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-            }, 600);
-            break;
-            
-          case 'align':
-            const globalName = (window as any).LuminaAvatarObject || 'LuminaAvatar';
-            if ((window as any)[globalName]) {
-              (window as any)[globalName]('align', selector);
-            }
-            break;
-            
-          case 'highlight':
-            highlightElement(element);
-            break;
-        }
-      }, idx * 1500);
-    });
+  const runToElement = async (selector: string, action: string) => {
+    // 1. Dispatch run pose
+    window.dispatchEvent(new CustomEvent('lumina:pose', { detail: { pose: 'run' } }));
+
+    // 2. Select placement based on action
+    let placement: 'left' | 'right' | 'center' | 'hang-left' | 'hang-right' = 'left';
+    if (action === 'click') {
+      placement = 'hang-left'; // Overlap left edge for grabbing and kicking
+    } else if (action === 'fill') {
+      placement = 'hang-right'; // Overlap right edge for hanging while typing
+    }
+
+    // 3. Align the avatar
+    const globalName = (window as any).LuminaAvatarObject || 'LuminaAvatar';
+    if ((window as any)[globalName]) {
+      (window as any)[globalName]('align', selector, placement);
+    }
+
+    // 4. Wait for glide transition (1.6s) to finish
+    await sleep(1600);
+  };
+
+  const stompAndClick = async (element: HTMLElement) => {
+    // Play kick/swing animation
+    window.dispatchEvent(new CustomEvent('lumina:pose', { detail: { pose: 'kick' } }));
+    highlightElement(element);
+    
+    // Wait for the kick strike contact frame (40% of 1.0s = 400ms)
+    await sleep(400);
+    
+    // Trigger physical DOM click
+    element.click();
+    
+    // Wait for animation to finish
+    await sleep(600);
+  };
+
+  const hangAndType = async (element: HTMLElement, value: string) => {
+    // Settle into hanging pose
+    window.dispatchEvent(new CustomEvent('lumina:pose', { detail: { pose: 'hang' } }));
+    highlightElement(element);
+    await sleep(400);
+
+    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+      element.value = '';
+      
+      // Typewriter effect!
+      for (let i = 0; i < value.length; i++) {
+        element.value += value.charAt(i);
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        await sleep(100); // typing speed
+      }
+    }
+    await sleep(400);
+  };
+
+  const executeDOMCommands = async (commands: any[]) => {
+    for (const cmd of commands) {
+      const { action, selector, value } = cmd;
+      console.log(`LuminaAvatar executing physical command:`, action, selector, value);
+      
+      if (!selector) continue;
+      const element = document.querySelector(selector) as HTMLElement;
+      if (!element) {
+        console.warn(`LuminaAvatar: Selector "${selector}" not found on page.`);
+        continue;
+      }
+
+      // Run to the element first
+      await runToElement(selector, action);
+
+      // Perform physical action
+      if (action === 'click') {
+        await stompAndClick(element);
+      } else if (action === 'fill') {
+        await hangAndType(element, value || '');
+      } else if (action === 'highlight') {
+        highlightElement(element);
+        await sleep(1000);
+      } else if (action === 'align') {
+        // Already aligned via runToElement
+        await sleep(400);
+      }
+
+      // Reset to resting/idle state
+      window.dispatchEvent(new CustomEvent('lumina:pose', { detail: { pose: 'idle' } }));
+      
+      // Add a small pause between consecutive actions for natural pace
+      await sleep(500);
+    }
   };
 
   const stopAndProcessAudio = async () => {
@@ -316,7 +363,10 @@ const bubbleContainerStyle = {
   flexDirection: 'column' as const,
   alignItems: 'flex-end',
   maxWidth: '280px',
-  marginBottom: '12px',
+  position: 'absolute' as const,
+  bottom: '100%',
+  right: '0px',
+  marginBottom: '16px', // Gap between avatar head and bubble
   transition: 'all 0.3s ease',
 };
 

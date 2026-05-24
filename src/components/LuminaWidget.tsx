@@ -31,10 +31,11 @@ export const LuminaWidget = ({
 
   useEffect(() => {
     const handleAlignEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<{ selector: string }>;
+      const customEvent = e as CustomEvent<{ selector: string; placement?: any }>;
       const selector = customEvent.detail.selector;
+      const placement = customEvent.detail.placement || 'left';
       
-      const align = calculateElementAlignment(selector, 'left');
+      const align = calculateElementAlignment(selector, placement);
       
       // Determine direction of motion
       const currentLeft = getRootCurrentLeft();
