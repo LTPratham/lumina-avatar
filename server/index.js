@@ -121,7 +121,9 @@ app.get('/api/tts', async (req, res) => {
         const fileBuffer = fs.readFileSync(beepPath);
         res.set({
           'Content-Type': 'audio/mpeg',
-          'Content-Length': fileBuffer.length
+          'Content-Length': fileBuffer.length,
+          'x-tts-mock': 'true',
+          'Access-Control-Expose-Headers': 'x-tts-mock'
         });
         return res.send(fileBuffer);
       }
