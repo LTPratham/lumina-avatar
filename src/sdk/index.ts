@@ -118,6 +118,13 @@ class LuminaAvatarSDK {
       case 'align':
         if (typeof args[0] === 'string') this.alignTo(args[0]);
         break;
+      case 'chat':
+        if (typeof args[0] === 'string') {
+          console.log('LuminaAvatar SDK dispatching chat event:', args[0]);
+          const event = new CustomEvent('lumina:chat', { detail: { text: args[0] } });
+          window.dispatchEvent(event);
+        }
+        break;
       default:
         console.warn(`LuminaAvatar: Unknown command "${cmd}"`);
     }

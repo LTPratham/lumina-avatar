@@ -193,6 +193,95 @@ Make sure to align to elements when interacting with them. Respond with valid JS
   }
 });
 
+// API Endpoint: Text Chat Completion (with DOM context)
+app.post('/api/chat', async (req, res) => {
+  const { text, domContext } = req.body;
+  if (!text) {
+    return res.status(400).json({ error: 'No text query provided' });
+  }
+
+  console.log('Chat completion request received. Text:', text, 'Context size:', domContext ? domContext.length : 0);
+
+  try {
+    let aiResponse = "";
+    let commands = [];
+
+    if (isOpenAiMock) {
+      // Mock fallback
+      aiResponse = "I can see the Onboarding form and Platform Terms on the screen. Tell me your name, and I will write it down for you!";
+      return res.json({ response: aiResponse, commands: [] });
+    }
+
+    const model = isGroq ? 'llama-3.1-8b-instant' : 'gpt-3.5-turbo';
+    
+    const systemPrompt = `You are LuminaAvatar, an interactive voice guide for SaaS onboarding.
+You are embedded in a webpage and have direct access to its DOM structure.
+The user is asking you for help. You can respond directly AND trigger actions on the webpage.
+
+Here is the current state of the page (simplified DOM elements list):
+${JSON.stringify(domContext || [], null, 2)}
+
+You can execute the following actions:
+1. 'align': Moves the avatar widget next to the specified element selector.
+2. 'fill': Writes a string into an input field (requires 'value' property).
+3. 'click': Clicks a button or link.
+4. 'highlight': Briefly outlines an element to draw attention to it.
+
+You must respond in JSON format with two keys:
+- "speak": A warm, natural speech response explaining the page elements and how you can assist (1 or 2 sentences max).
+- "commands": An array of commands to execute. Each command must be an object with:
+  - "action": "click", "fill", "align", or "highlight"
+  - "selector": The exact CSS selector of the target element from the DOM context (e.g., "#name-field")
+  - "value": (Only for "fill") The string value to write.
+
+Examples:
+- If user says: "read the screen", you should respond with:
+  {
+    "speak": "I can see a User Onboarding card with Name and Password fields, and a Platform Terms block with four lines. How should we proceed?",
+    "commands": [
+      { "action": "highlight", "selector": "#form-card" },
+      { "action": "highlight", "selector": "#terms-card" }
+    ]
+  }
+
+Respond with valid JSON.`;
+
+    const chatCompletion = await openai.chat.completions.create({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: text }
+      ],
+      model: model,
+      response_format: { type: "json_object" },
+      max_tokens: 250
+    });
+
+    const responseContent = chatCompletion.choices[0]?.message?.content || "{}";
+    console.log('Chat LLM Raw Output:', responseContent);
+    
+    let parsed = { speak: responseContent, commands: [] };
+    try {
+      parsed = JSON.parse(responseContent);
+    } catch (parseErr) {
+      console.warn('Failed to parse JSON response, attempting cleanup:', responseContent);
+      let cleanText = responseContent.replace(/```json/g, '').replace(/```/g, '').trim();
+      try {
+        parsed = JSON.parse(cleanText);
+      } catch (e) {
+        parsed = { speak: cleanText, commands: [] };
+      }
+    }
+    
+    aiResponse = parsed.speak || "";
+    commands = parsed.commands || [];
+
+    res.json({ response: aiResponse, commands: commands });
+  } catch (error) {
+    console.error('Error generating chat completion:', error);
+    res.status(500).json({ error: 'Chat completion failed', details: error.message });
+  }
+});
+
 // API Endpoint: Text-to-Speech (ElevenLabs proxy)
 app.get('/api/tts', async (req, res) => {
   const text = req.query.text;

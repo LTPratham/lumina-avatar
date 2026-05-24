@@ -49,9 +49,52 @@ export const SpeechBubble = ({
       setMessage(customEvent.detail.text);
     };
 
+    const handleChatEvent = async (e: Event) => {
+      const customEvent = e as CustomEvent<{ text: string }>;
+      const textQuery = customEvent.detail.text;
+      
+      setIsProcessing(true);
+      setDisplayedText('Thinking...');
+      try {
+        const domContext = getDOMContext();
+        const response = await fetch('http://localhost:3001/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text: textQuery, domContext })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Chat API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        setMessage(result.response);
+        
+        // Let the companion speak
+        const globalName = (window as any).LuminaAvatarObject || 'LuminaAvatar';
+        if ((window as any)[globalName] && result.response) {
+          (window as any)[globalName]('speak', result.response);
+        }
+        
+        // Execute commands
+        if (result.commands && result.commands.length > 0) {
+          executeDOMCommands(result.commands);
+        }
+      } catch (err) {
+        console.error('LuminaAvatar: Failed chat completion:', err);
+        setMessage("Sorry, I had trouble processing that request.");
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
     window.addEventListener('lumina:speak', handleSpeakEvent);
+    window.addEventListener('lumina:chat', handleChatEvent);
     return () => {
       window.removeEventListener('lumina:speak', handleSpeakEvent);
+      window.removeEventListener('lumina:chat', handleChatEvent);
     };
   }, []);
 
