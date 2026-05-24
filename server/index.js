@@ -20,10 +20,14 @@ const upload = multer({ dest: 'uploads/' });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize OpenAI client
+// Initialize OpenAI client (supports Groq automatically if key starts with gsk_)
 const openaiApiKey = process.env.OPENAI_API_KEY;
 const isOpenAiMock = !openaiApiKey || openaiApiKey.includes('your_openai_api_key');
-const openai = isOpenAiMock ? null : new OpenAI({ apiKey: openaiApiKey });
+const isGroq = openaiApiKey && openaiApiKey.startsWith('gsk_');
+const openai = isOpenAiMock ? null : new OpenAI({
+  apiKey: openaiApiKey,
+  baseURL: isGroq ? 'https://api.groq.com/openai/v1' : undefined
+});
 
 // Initialize ElevenLabs config
 const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
@@ -31,7 +35,8 @@ const isElevenLabsMock = !elevenLabsApiKey || elevenLabsApiKey.includes('your_el
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
 
 console.log('--- LuminaAvatar Dev Server Config ---');
-console.log('OpenAI API Key configured:', !isOpenAiMock);
+console.log('OpenAI/Groq API Key configured:', !isOpenAiMock);
+console.log('Using Groq high-speed provider:', !!isGroq);
 console.log('ElevenLabs API Key configured:', !isElevenLabsMock);
 console.log('--------------------------------------');
 
@@ -69,10 +74,10 @@ app.post('/api/stt', upload.single('audio'), async (req, res) => {
       return res.json({ text: randomTranscript });
     }
 
-    // Call OpenAI Whisper API
+    // Call OpenAI Whisper API (or Groq Whisper if isGroq is true)
     const response = await openai.audio.transcriptions.create({
       file: fs.createReadStream(filePath),
-      model: 'whisper-1',
+      model: isGroq ? 'whisper-large-v3' : 'whisper-1',
     });
 
     // Clean up uploaded file
